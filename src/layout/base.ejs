@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en-US" itemscope="itemscope" itemtype="http://schema.org/WebPage">
+  <head>
+    <%- partial('meta', locals) %>
+  </head>
+
+  <main id="<%- (locals.id) ? locals.id : '' %>" class="<%- (locals.pageClasses) ? locals.pageClasses.toString().replace(/,/g,' ') : '' %>">
+    <div class="content">
+      <header id="main-header">
+        <a href="/" class="name" title="Alison Anders's art">
+          <h1>
+            <span class="first-name">Alison</span>
+            <span class="last-name">Anders</span>
+          </h1>
+        </a>
+      </header>
+
+      <%- content %>
+
+      <section id="contact">
+        <p>
+          If you like my technique, please contact me and we can talk about a personalized piece, or you can purchase one of the pieces that I currently have in stock.
+        </p>
+
+        <p class="center">
+          <a title="Email me" href="mailto:alison.anders.art@gmail.com">alison.anders.art<span>@gmail.com</span></a>
+        </p>
+      </section>
+
+      <footer id="footer">
+        <% const date = new Date(); %>
+        &#169; <%- date.getFullYear() %> Alison Anders
+      </footer>
+    </div>
+
+    <script src="/scripts/main.js" async></script>
+  </body>
+</html>

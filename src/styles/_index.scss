@@ -1,0 +1,10 @@
+#index img {
+  width: 100%;
+  display: block;
+}
+
+@include mq(768px) {
+  #index img {
+    border-width: 1em;
+  }
+}

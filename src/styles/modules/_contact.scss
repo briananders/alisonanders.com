@@ -1,0 +1,19 @@
+#contact {
+  a {
+    text-align: center;
+    text-decoration: none;
+    font-family: "Futura";
+    color: $black;
+
+    span {
+      color: $mid;
+      @include transition(color .2s ease);
+    }
+
+    &:hover {
+      span {
+        color: inherit;
+      }
+    }
+  }
+}

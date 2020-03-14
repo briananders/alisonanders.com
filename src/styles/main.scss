@@ -1,0 +1,98 @@
+@import "./lib/mixins";
+@import "./lib/normalize";
+@import "./index";
+@import "./modules/artwork";
+@import "./modules/about";
+@import "./modules/contact";
+@import "./piece/all";
+html {
+  height: 100%;
+  font-size: 62.5%;
+}
+
+body {
+  color: $black;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+ul {
+  list-style: none;
+}
+
+header#main-header {
+  overflow: hidden;
+  width: 100%;
+  max-width: 1040px;
+  margin: auto;
+  @include font-size(30);
+  @include box-sizing(border-box);
+  h1 {
+    padding: 10px 0;
+    margin: 0;
+    font-weight: 100;
+  }
+  .name {
+    float: left;
+    text-decoration: none;
+    font-family: "Jenna";
+    text-align: center;
+    width: 100%;
+    color: rgb(228, 117, 107);
+  }
+  a:hover {
+    color: red;
+    @include text-shadow(0 1px $black, 0 -1px white);
+  }
+}
+
+.center {
+  text-align: center;
+}
+
+header,
+p {
+  margin: 0;
+  margin-bottom: 20px;
+  max-width: 660px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.content {
+  font-family: "Futura";
+  position: relative;
+  line-height: 1.5;
+  overflow: hidden;
+  max-width: 1280px;
+  margin: auto;
+  padding-left: 20px;
+  padding-right: 20px;
+  @include box-sizing(border-box);
+  @include font-size(20);
+}
+
+section {
+  width: 100%;
+  padding: 50px 0;
+  overflow: hidden;
+  @include box-sizing(border-box);
+}
+
+footer#footer {
+  text-align: center;
+  padding: 5px 0 5px;
+  display: block;
+  width: 100%;
+  max-width: 1040px;
+  margin: auto;
+  font-family: "Futura";
+  @include font-size(16);
+  @include box-sizing(border-box);
+  &.fixed {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+}

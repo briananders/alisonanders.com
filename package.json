@@ -55,7 +55,7 @@
     "html-minifier": "^4.0.0",
     "image-optimizer": "^0.4.0-pre2",
     "jquery": "^3.4.1",
-    "merge": "^1.2.1",
+    "merge": "^2.1.1",
     "node-sass": "^4.13.1",
     "simple-fmt": "^0.1.0",
     "uglify-js": "^3.8.0",

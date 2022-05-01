@@ -37,10 +37,9 @@ header#main-header {
     font-family: "Jenna";
     text-align: center;
     width: 100%;
-    color: rgb(228, 117, 107);
+    color: $purple;
   }
   a:hover {
-    color: red;
     @include text-shadow(0 1px $black, 0 -1px white);
   }
 }

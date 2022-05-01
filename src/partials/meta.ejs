@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable"          content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="mobile-web-app-capable"                content="yes">
-<meta name="keywords"                              content="Brian, Anders, Brian Anders, UX Engineer, Nest, Google, Alphabet, Lamoni">
+<meta name="keywords"                              content="Alison, Anders, Thomas, Alison Anders, Alison Thomas, Art, Paper art">
 <meta name="description"                           content="<%- locals.description %>">
 <meta name="author"                                content="<%- locals.author %>">
 <meta name="viewport"                              content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,initial-scale=1.0" />
@@ -28,15 +28,6 @@
 <meta itemprop="image"                             content="<%- locals.domain %>images/favicon_base.png">
 <link rel="canonical"                                 href="<%- locals.domain %><%- locals.path %>" />
 
-<!-- Twitter Card data -->
-<meta name="twitter:card"                          content="summary">
-<meta name="twitter:url"                           content="<%- locals.domain %><%- locals.path %>">
-<meta name="twitter:site"                          content="@brnandrs">
-<meta name="twitter:creator"                       content="@brnandrs">
-<meta name="twitter:title"                         content="<%- locals.author %>">
-<meta name="twitter:description"                   content="<%- locals.description %>">
-<meta name="twitter:image"                         content="<%- locals.domain %>images/favicon_base.png">
-
 <!-- Open Graph data -->
 <meta property="og:type"                           content="profile" />
 <meta property="og:url"                            content="<%- locals.domain %><%- locals.path %>" />
@@ -46,14 +37,10 @@
 <meta property="og:site_name"                      content="<%- locals.name %>" />
 
 <!-- Favicon -->
-<link rel="apple-touch-icon-precomposed" sizes="152x152" href="/images/apple-touch-icon-152x152-precomposed.png" />
-<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/images/apple-touch-icon-144x144-precomposed.png" />
-<link rel="apple-touch-icon-precomposed" sizes="114x114" href="/images/apple-touch-icon-114x114-precomposed.png" />
-<link rel="apple-touch-icon-precomposed" sizes="72x72"   href="/images/apple-touch-icon-72x72-precomposed.png" />
-<link rel="apple-touch-icon-precomposed"                 href="/images/apple-touch-icon-precomposed.png" />
-<link rel="shortcut icon"                                href="/images/favicon.png" />
-<link rel="icon" type="image/ico"                        href="/images/favicon.ico" />
-<link rel="shortcut icon"                                href="/images/favicon.ico" />
+<link rel="shortcut icon"                          href="/images/favicon_144.png" />
+<link rel="icon"                                   href="/images/favicon_144.png" />
+<link rel="apple-touch-icon"                       href="/images/favicon_144.png" />
+<link rel="apple-touch-icon-precomposed"           href="/images/favicon_144.png" />
 
 <meta itemprop="copyrightHolder" content="<%- locals.author %>"/>
 <meta itemprop="copyrightYear" content="2016"/>
@@ -80,10 +67,18 @@
 
 <% const fontApi = 'https://fonts.googleapis.com/css?family=Roboto:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,500italic,600,600italic,700,700italic,800,800italic,900,900italic'; %>
 
-<link href='<%- fontApi %>' rel='stylesheet' type='text/css' media="none" onload="if(media!='all')media='all'">
-<link href="/styles/main.css" rel="stylesheet" type="text/css" media="none" onload="if(media!='all')media='all'">
+<link rel="preload" media="all" href="<%- fontApi %>" lazyload onload="this.onload=null;this.rel='stylesheet'" as="style">
+<% locals.styles.forEach((path) => { %>
+  <% if(path === 'main') { %>
+    <link rel="stylesheet" media="all" href="/styles/<%- path %>.css">
+  <% } else { %>
+    <link rel="preload" media="all" href="/styles/<%- path %>.css" lazyload onload="this.onload=null;this.rel='stylesheet'" as="style">
+  <% } %>
+<% }); %>
 
 <noscript>
-  <link href='<%- fontApi %>' rel='stylesheet' type='text/css'>
-  <link href="/styles/main.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" media="all" href="<%- fontApi %>">
+  <% locals.styles.forEach((path) => { %>
+    <link rel="stylesheet" media="all" href="/styles/<%- path %>.css">
+  <% }); %>
 </noscript>

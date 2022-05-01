@@ -2,8 +2,18 @@ const fs = require('fs-extra');
 const glob = require('glob');
 const XXHash = require('xxhash');
 
-module.exports = function hashCSS(dir, completionFlags, buildEvents, hashingFileNameList) {
+const BUILD_EVENTS = require('./constants/build-events');
+
+const { log } = console;
+
+module.exports = function hashCSS({
+  dir, completionFlags, buildEvents, hashingFileNameList, debug,
+}) {
+  completionFlags.ASSET_HASH.CSS = false;
+
   const timestamp = require(`${dir.build}timestamp`);
+
+  log(`${timestamp.stamp()} assetHashing().css`);
 
   const cssGlob = glob.sync(`${dir.package}**/*.css`);
   let processedCss = 0;
@@ -14,12 +24,12 @@ module.exports = function hashCSS(dir, completionFlags, buildEvents, hashingFile
     hashingFileNameList[file] = hashedFileName;
     fs.rename(file, hashedFileName, (err) => {
       if (err) throw err;
-      console.log(`${timestamp.stamp()}: assetHashing(): ${hashedFileName} renamed complete`);
+      if (debug) log(`${timestamp.stamp()} assetHashing().css: ${hashedFileName} renamed complete`);
       processedCss++;
       if (processedCss >= array.length) {
         completionFlags.ASSET_HASH.CSS = true;
-        console.log(`${timestamp.stamp()}: assetHashing(): completionFlags.ASSET_HASH.CSS: ${completionFlags.ASSET_HASH.CSS}`);
-        buildEvents.emit('asset-hash-css-listed');
+        log(`${timestamp.stamp()} assetHashing().css: ${'DONE'.bold.green}`);
+        buildEvents.emit(BUILD_EVENTS.assetHashCssListed);
       }
     });
   });

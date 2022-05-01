@@ -2,6 +2,16 @@
 <html lang="en-US" itemscope="itemscope" itemtype="http://schema.org/WebPage">
   <head>
     <%- partial('meta', locals) %>
+
+    <script src="/scripts/all.js" async defer></script>
+    <%
+      if(locals.scripts) {
+        locals.scripts.forEach((path) => { %>
+      <script src="/scripts/<%- path %>.js" async defer></script>
+    <%
+        });
+      }
+    %>
   </head>
 
   <main id="<%- (locals.id) ? locals.id : '' %>" class="<%- (locals.pageClasses) ? locals.pageClasses.toString().replace(/,/g,' ') : '' %>">
@@ -32,7 +42,5 @@
         &#169; <%- date.getFullYear() %> Alison Anders
       </footer>
     </div>
-
-    <script src="/scripts/main.js" async></script>
   </body>
 </html>

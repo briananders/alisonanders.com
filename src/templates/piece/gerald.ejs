@@ -8,9 +8,12 @@ priority: 0.9
 layout: base
 styles:
   - 'main'
+  - 'piece/all'
+scripts:
+  - 'piece/all'
 ---
 
-<img id="art" src="/images/artwork/2080/Gerald.jpg">
+<%- lazyImage({ id: 'art', src: "/images/artwork/2080/Gerald.jpg" }) %>
 <section>
   <ul>
     <li id="title">Gerald</li>

@@ -1,5 +1,5 @@
 #!/bin/zsh
-echo "Changing package permissions to 755"
+echo "Changing build permissions to 755"
 chmod -R 755 package/
 echo "Emptying s3 bucket"
 aws s3 rm s3://www.alisonanders.com --recursive

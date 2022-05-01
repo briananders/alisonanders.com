@@ -1,10 +1,9 @@
 @import "./lib/mixins";
+
 @import "./lib/normalize";
-@import "./index";
-@import "./modules/artwork";
-@import "./modules/about";
+
 @import "./modules/contact";
-@import "./piece/all";
+
 html {
   height: 100%;
   font-size: 62.5%;

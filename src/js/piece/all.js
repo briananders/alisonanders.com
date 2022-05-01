@@ -20,7 +20,5 @@ window.jQuery = require('jquery');
       zoomWindowFadeIn: 300,
       zoomWindowFadeOut: 300,
     });
-  } else {
-    document.querySelector('meta[name=viewport]').setAttribute('content', 'user-scalable=yes, initial-scale=1, maximum-scale=10, minimum-scale=0.5, width=device-width, height=device-height, target-densitydpi=device-dpi');
   }
 }());

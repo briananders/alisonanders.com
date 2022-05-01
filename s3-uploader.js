@@ -118,7 +118,7 @@ const invalidateCloudFront = () => {
   console.log('Invalidate Cache');
 
   const params = {
-    DistributionId: process.env.CLOUDFRONT_ID,
+    DistributionId: process.env.CLOUDFRONT_ID_ALISON,
     InvalidationBatch: { /* required */
       CallerReference: Date.now().toString(), /* required */
       Paths: { /* required */

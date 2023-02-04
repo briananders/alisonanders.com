@@ -41,10 +41,10 @@
     "yarn-upgrade-all": "^0.6.1"
   },
   "dependencies": {
-    "@zeitiger/elevatezoom": "^2.5.4",
     "@babel/core": "^7.17.5",
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-react": "^7.16.7",
+    "@zeitiger/elevatezoom": "^2.5.4",
     "aws-sdk": "^2.1076.0",
     "babelify": "^10.0.0",
     "browserify": "^17.0.0",

@@ -1,11 +1,12 @@
 const ejs = require('ejs');
 const fs = require('fs-extra');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function sitemap({
+module.exports = async function sitemap({
   dir, completionFlags, buildEvents, pageMappingData,
 }) {
   completionFlags.SITE_MAP = false;
@@ -14,19 +15,15 @@ module.exports = function sitemap({
   const siteData = require(`${dir.build}site-data`)(dir);
 
   log(`${timestamp.stamp()} sitemap()`);
-  ejs.renderFile(`${dir.src}sitemap.xml.ejs`, {
+
+  const str = await ejs.renderFile(`${dir.src}sitemap.xml.ejs`, {
     pages: pageMappingData,
     siteData,
-  }, {
-    compileDebug: true,
-  }, (error, str) => {
-    if (error) throw error;
-    fs.writeFile(`${dir.package}sitemap.xml`, str, (err) => {
-      if (err) throw err;
+  }, { compileDebug: true });
 
-      completionFlags.SITE_MAP = true;
-      log(`${timestamp.stamp()} sitemap(): ${'DONE'.bold.green}`);
-      buildEvents.emit(BUILD_EVENTS.sitemapDone);
-    });
-  });
+  await fs.writeFile(`${dir.package}sitemap.xml`, str);
+
+  completionFlags.SITE_MAP = true;
+  log(`${timestamp.stamp()} sitemap(): ${chalk.bold.green('DONE')}`);
+  buildEvents.emit(BUILD_EVENTS.sitemapDone);
 };

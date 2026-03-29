@@ -1,7 +1,6 @@
-@import "./lib/mixins";
-
-@import "./modules/artwork";
-@import "./modules/about";
+@use './lib/mixins' as *;
+@use './modules/artwork';
+@use './modules/about';
 
 #index img {
   width: 100%;

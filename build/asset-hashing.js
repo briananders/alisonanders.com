@@ -1,12 +1,18 @@
 const fs = require('fs-extra');
-const glob = require('glob');
-const XXHash = require('xxhash');
+const path = require('path');
+const crypto = require('crypto');
+const { globSync } = require('glob');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function assetHashing({
+function hashFile(fileContents) {
+  return crypto.createHash('sha256').update(fileContents).digest('hex').slice(0, 8);
+}
+
+module.exports = async function assetHashing({
   dir, completionFlags, buildEvents, hashingFileNameList, debug,
 }) {
   completionFlags.ASSET_HASH.IMAGES = false;
@@ -20,52 +26,50 @@ module.exports = function assetHashing({
       || !completionFlags.IMAGES_ARE_MOVED) {
     return false;
   }
+
   log(`${timestamp.stamp()} assetHashing().images`);
+
   if (debug) {
-    log(`${timestamp.stamp()} completionFlags.JS_IS_MINIFIED :${completionFlags.JS_IS_MINIFIED}`);
-    log(`${timestamp.stamp()} completionFlags.CSS_IS_MINIFIED    :${completionFlags.CSS_IS_MINIFIED}`);
-    log(`${timestamp.stamp()} completionFlags.HTML_IS_MINIFIED     :${completionFlags.HTML_IS_MINIFIED}`);
-    log(`${timestamp.stamp()} completionFlags.IMAGES_ARE_MOVED     :${completionFlags.IMAGES_ARE_MOVED}`);
+    log(`${timestamp.stamp()} completionFlags.JS_IS_MINIFIED   : ${completionFlags.JS_IS_MINIFIED}`);
+    log(`${timestamp.stamp()} completionFlags.CSS_IS_MINIFIED  : ${completionFlags.CSS_IS_MINIFIED}`);
+    log(`${timestamp.stamp()} completionFlags.HTML_IS_MINIFIED : ${completionFlags.HTML_IS_MINIFIED}`);
+    log(`${timestamp.stamp()} completionFlags.IMAGES_ARE_MOVED : ${completionFlags.IMAGES_ARE_MOVED}`);
   }
 
-  const jsGlob = glob.sync(`${dir.package}**/*.js`);
-  const assetGlob = glob.sync(`${dir.package}images/**/*.{png,svg,jpg,webm,mp4}`);
+  const jsGlob = globSync(`${dir.package}**/*.js`);
+  const assetGlob = globSync(`${dir.package}images/**/*.{png,svg,jpg,webm,mp4}`);
 
-  let processedJs = 0;
-  jsGlob.forEach((file, index, array) => {
+  await Promise.all(jsGlob.map(async (file) => {
     if (debug) log(`${timestamp.stamp()} assetHashing().js: ${file} renamed start`);
-    const fileContents = fs.readFileSync(file);
-    const hash = XXHash.hash(fileContents, 0xCAFEBABE);
-    const hashedFileName = `${file.substr(0, file.lastIndexOf('.'))}-${hash}${file.substr(file.lastIndexOf('.'))}`;
+    const fileContents = await fs.readFile(file);
+    const hash = hashFile(fileContents);
+    const ext = path.extname(file);
+    const base = file.slice(0, file.length - ext.length);
+    const hashedFileName = `${base}-${hash}${ext}`;
     hashingFileNameList[file] = hashedFileName;
-    fs.rename(file, hashedFileName, (err) => {
-      if (err) throw err;
-      if (debug) log(`${timestamp.stamp()} assetHashing().js: ${hashedFileName} renamed complete`);
-      processedJs++;
-      if (processedJs >= array.length) {
-        completionFlags.ASSET_HASH.JS = true;
-        if (debug) log(`${timestamp.stamp()} assetHashing().js: completionFlags.ASSET_HASH.JS: ${completionFlags.ASSET_HASH.JS}`);
-        buildEvents.emit(BUILD_EVENTS.assetHashJsListed);
-      }
-    });
-  });
+    await fs.rename(file, hashedFileName);
+    if (debug) log(`${timestamp.stamp()} assetHashing().js: ${hashedFileName} renamed complete`);
+  }));
 
-  let processedImages = 0;
-  assetGlob.forEach((file, index, array) => {
+  completionFlags.ASSET_HASH.JS = true;
+  if (debug) log(`${timestamp.stamp()} assetHashing().js: completionFlags.ASSET_HASH.JS: ${completionFlags.ASSET_HASH.JS}`);
+  buildEvents.emit(BUILD_EVENTS.assetHashJsListed);
+
+  await Promise.all(assetGlob.map(async (file) => {
     if (debug) log(`${timestamp.stamp()} assetHashing().images: ${file} renamed start`);
-    const fileContents = fs.readFileSync(file);
-    const hash = XXHash.hash(fileContents, 0xCAFEBABE);
-    const hashedFileName = `${file.substr(0, file.lastIndexOf('.'))}-${hash}${file.substr(file.lastIndexOf('.'))}`;
+    const fileContents = await fs.readFile(file);
+    const hash = hashFile(fileContents);
+    const ext = path.extname(file);
+    const base = file.slice(0, file.length - ext.length);
+    const hashedFileName = `${base}-${hash}${ext}`;
     hashingFileNameList[file] = hashedFileName;
-    fs.rename(file, hashedFileName, (err) => {
-      if (err) throw err;
-      if (debug) log(`${timestamp.stamp()} assetHashing().images: ${hashedFileName} renamed complete`);
-      processedImages++;
-      if (processedImages >= array.length) {
-        completionFlags.ASSET_HASH.IMAGES = true;
-        log(`${timestamp.stamp()} assetHashing().images: ${'DONE'.bold.green}`);
-        buildEvents.emit(BUILD_EVENTS.assetHashImagesListed);
-      }
-    });
-  });
+    await fs.rename(file, hashedFileName);
+    if (debug) log(`${timestamp.stamp()} assetHashing().images: ${hashedFileName} renamed complete`);
+  }));
+
+  completionFlags.ASSET_HASH.IMAGES = true;
+  log(`${timestamp.stamp()} assetHashing().images: ${chalk.bold.green('DONE')}`);
+  buildEvents.emit(BUILD_EVENTS.assetHashImagesListed);
+
+  return true;
 };

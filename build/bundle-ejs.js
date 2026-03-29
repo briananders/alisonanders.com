@@ -1,25 +1,18 @@
-/* eslint-disable no-console */
-/* eslint-disable no-loop-func */
 const fs = require('fs-extra');
-const glob = require('glob');
 const path = require('path');
-const merge = require('merge');
+const { globSync } = require('glob');
 const ejs = require('ejs');
 const matter = require('gray-matter');
 const notifier = require('node-notifier');
-const util = require('util');
-const readFile = util.promisify(fs.readFile);
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
 function handleTemplateError(e) {
-  console.error(e.message.red);
-  notifier.notify({
-    title: 'Template Error',
-    message: e.message,
-  });
+  console.error(chalk.red(e.message));
+  notifier.notify({ title: 'Template Error', message: e.message });
   return `
     <html>
       <head></head>
@@ -51,85 +44,40 @@ async function renderTemplate({
   pagePath,
   frontMatter,
 }) {
-  return new Promise((resolve, reject) => {
-    const templateData = merge({}, ejsFunctions, siteData, frontMatter.data, { path: pagePath });
+  const templateData = { ...ejsFunctions, ...siteData, ...frontMatter.data, path: pagePath };
 
-    if (!production && !templateData.layout) {
-      const errorMessage = `You are missing a template definition in ${templatePath}`;
-      console.error(errorMessage.red);
-      notifier.notify({
-        title: 'Template undefined',
-        message: errorMessage,
-      });
-      reject();
-    }
+  if (!production && !templateData.layout) {
+    const errorMessage = `You are missing a template definition in ${templatePath}`;
+    console.error(chalk.red(errorMessage));
+    notifier.notify({ title: 'Template undefined', message: errorMessage });
+    throw new Error(errorMessage);
+  }
 
-    readFile(`${dir.src}layout/${templateData.layout}.ejs`).catch((error) => {
-      if (error && production) throw error;
-      else if (error) {
-        console.error(error.message.red);
-        notifier.notify({
-          title: 'Template Error',
-          message: error.message,
-        });
-        reject();
-      }
-    }).then(async (fileBuffer) => {
-      const fileData = fileBuffer.toString();
-      let html;
-      try {
-        const renderedTemplate = ejs.render(frontMatter.content, templateData, ejsOptions);
-        html = ejs.render(fileData, merge({ content: renderedTemplate }, templateData), ejsOptions);
-      } catch (e) {
-        html = handleTemplateError(e);
-      }
+  let fileData;
+  try {
+    fileData = (await fs.readFile(`${dir.src}layout/${templateData.layout}.ejs`)).toString();
+  } catch (error) {
+    if (production) throw error;
+    console.error(chalk.red(error.message));
+    notifier.notify({ title: 'Template Error', message: error.message });
+    throw error;
+  }
 
-      if (matter.test(html)) {
-        const nextFrontMatter = matter(html);
-        frontMatter.content = nextFrontMatter.content;
-        frontMatter.data = merge({}, frontMatter.data, nextFrontMatter.data);
-        html = await renderTemplate({
-          templatePath,
-          ejsFunctions,
-          siteData,
-          dir,
-          production,
-          ejsOptions,
-          pagePath,
-          frontMatter,
-        });
-      }
-      resolve(html);
-    });
-  });
-}
+  let html;
+  try {
+    const renderedTemplate = ejs.render(frontMatter.content, templateData, ejsOptions);
+    html = ejs.render(fileData, { content: renderedTemplate, ...templateData }, ejsOptions);
+  } catch (e) {
+    html = handleTemplateError(e);
+  }
 
-module.exports = async function bundleEJS({
-  dir, buildEvents, pageMappingData, debug,
-}) {
-  const siteData = require(`${dir.build}site-data`)(dir);
-  const timestamp = require(`${dir.build}timestamp`);
-  const templateGlob = glob.sync(`${dir.src}templates/**/[^_]*.ejs`);
-  const production = require(`${dir.build}production`);
-
-  log(`${timestamp.stamp()} bundleEJS()`);
-
-  let processed = 0;
-
-  for (let index = 0; index < templateGlob.length; index++) {
-    const templatePath = templateGlob[index];
-    if (debug) log(`${timestamp.stamp()} ${'REQUEST'.magenta} - Compiling Template - ${templatePath.split(/templates/)[1]}`);
-    const ejsFunctions = require(`${dir.build}ejs-functions`)(dir, pageMappingData);
-    const ejsOptions = {
-      compileDebug: true,
-      filename: templatePath,
-      root: `${dir.src}templates/`,
-    };
-    const outputPath = templatePath.replace(`${dir.src}templates/`, dir.package).replace(/\.ejs$/, (templatePath.includes('.html.ejs')) ? '' : '/index.html');
-    const pagePath = outputPath.replace(dir.package, '').replace('index.html', '');
-    const frontMatter = matter.read(templatePath);
-
-    const html = await renderTemplate({
+  if (matter.test(html)) {
+    const nextFrontMatter = matter(html);
+    // eslint-disable-next-line no-param-reassign
+    frontMatter.content = nextFrontMatter.content;
+    // eslint-disable-next-line no-param-reassign
+    frontMatter.data = { ...frontMatter.data, ...nextFrontMatter.data };
+    return renderTemplate({
       templatePath,
       ejsFunctions,
       siteData,
@@ -138,32 +86,73 @@ module.exports = async function bundleEJS({
       ejsOptions,
       pagePath,
       frontMatter,
-    }).catch((err) => {
-      if (err && production) throw err;
-      else if (err) {
-        console.error(err.message.red);
-        notifier.notify({
-          title: 'Template Error',
-          message: err.message,
-        });
-      }
-      processed++;
-    });
-
-    fs.mkdirp(path.dirname(outputPath), (err) => {
-      if (err) throw err;
-
-      fs.writeFile(outputPath, html, (e) => {
-        if (e) throw e;
-
-        if (debug) log(`${timestamp.stamp()} ${'SUCCESS'.bold.green} - Compiled Template - ${outputPath.split(/package/)[1]}`);
-        processed++;
-
-        if (processed >= templateGlob.length) {
-          log(`${timestamp.stamp()} bundleEJS(): ${'DONE'.bold.green}`);
-          buildEvents.emit(BUILD_EVENTS.templatesMoved);
-        }
-      });
     });
   }
+
+  return html;
+}
+
+module.exports = async function bundleEJS({
+  dir, buildEvents, pageMappingData, debug,
+}) {
+  const siteData = require(`${dir.build}site-data`)(dir);
+  const timestamp = require(`${dir.build}timestamp`);
+  const production = require(`${dir.build}production`);
+
+  log(`${timestamp.stamp()} bundleEJS()`);
+
+  const templateGlob = globSync(`${dir.src}templates/**/[^_]*.ejs`);
+  let processed = 0;
+
+  for (const templatePath of templateGlob) {
+    if (debug) {
+      log(`${timestamp.stamp()} ${chalk.magenta('REQUEST')} - Compiling Template - ${templatePath.split(/templates/)[1]}`);
+    }
+
+    const ejsFunctions = require(`${dir.build}ejs-functions`)(dir, pageMappingData);
+    const ejsOptions = {
+      compileDebug: true,
+      filename: templatePath,
+      root: `${dir.src}templates/`,
+    };
+    const outputPath = templatePath
+      .replace(`${dir.src}templates/`, dir.package)
+      .replace(/\.ejs$/, templatePath.includes('.html.ejs') ? '' : '/index.html');
+    const pagePath = outputPath.replace(dir.package, '').replace('index.html', '');
+    const frontMatter = matter.read(templatePath);
+
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const html = await renderTemplate({
+        templatePath,
+        ejsFunctions,
+        siteData,
+        dir,
+        production,
+        ejsOptions,
+        pagePath,
+        frontMatter,
+      });
+
+      // eslint-disable-next-line no-await-in-loop
+      await fs.mkdirp(path.dirname(outputPath));
+      // eslint-disable-next-line no-await-in-loop
+      await fs.writeFile(outputPath, html);
+
+      if (debug) {
+        log(`${timestamp.stamp()} ${chalk.bold.green('SUCCESS')} - Compiled Template - ${outputPath.split(/package/)[1]}`);
+      }
+    } catch (err) {
+      if (err && production) throw err;
+      else if (err) {
+        console.error(chalk.red(err.message));
+        notifier.notify({ title: 'Template Error', message: err.message });
+      }
+    }
+
+    processed += 1;
+  }
+
+  log(`${timestamp.stamp()} bundleEJS(): ${chalk.bold.green('DONE')}`);
+  buildEvents.emit(BUILD_EVENTS.templatesMoved);
 };

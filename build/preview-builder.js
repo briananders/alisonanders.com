@@ -1,4 +1,5 @@
 const chokidar = require('chokidar');
+const chalk = require('chalk');
 
 const { log } = console;
 
@@ -18,30 +19,16 @@ function watchForPreviewReady({ buildEvents, completionFlags }) {
   };
 
   function check() {
-    if (Object.keys(eventsToWatch)
-      .map((key) => eventsToWatch[key])
-      .filter((value) => !value).length === 0) {
+    if (Object.values(eventsToWatch).every(Boolean)) {
       completionFlags.PREVIEW_READY = true;
       buildEvents.emit(BUILD_EVENTS.previewReady);
     }
   }
 
-  buildEvents.on(BUILD_EVENTS.jsMoved, () => {
-    eventsToWatch.jsMoved = true;
-    check();
-  });
-  buildEvents.on(BUILD_EVENTS.templatesMoved, () => {
-    eventsToWatch.templatesMoved = true;
-    check();
-  });
-  buildEvents.on(BUILD_EVENTS.stylesMoved, () => {
-    eventsToWatch.stylesMoved = true;
-    check();
-  });
-  buildEvents.on(BUILD_EVENTS.imagesMoved, () => {
-    eventsToWatch.imagesMoved = true;
-    check();
-  });
+  buildEvents.on(BUILD_EVENTS.jsMoved, () => { eventsToWatch.jsMoved = true; check(); });
+  buildEvents.on(BUILD_EVENTS.templatesMoved, () => { eventsToWatch.templatesMoved = true; check(); });
+  buildEvents.on(BUILD_EVENTS.stylesMoved, () => { eventsToWatch.stylesMoved = true; check(); });
+  buildEvents.on(BUILD_EVENTS.imagesMoved, () => { eventsToWatch.imagesMoved = true; check(); });
 }
 
 module.exports = (configs) => {
@@ -49,34 +36,32 @@ module.exports = (configs) => {
 
   watchForPreviewReady(configs);
 
-  function update(path) {
-    if (path.includes('.DS_Store')) return;
-    log(`${timestamp.stamp()} ${`File modified: ${path.split('alisonanders.com')[1]}`.yellow}`);
+  function update(filePath) {
+    if (filePath.includes('.DS_Store')) return;
+    log(`${timestamp.stamp()} ${chalk.yellow(`File modified: ${filePath.split('alisonanders.com')[1]}`)}`);
 
     switch (true) {
-      case path.includes('.DS_Store'):
-        break;
-      case path.includes(`${dir.src}js/`):
+      case filePath.includes(`${dir.src}js/`):
         bundleJS(configs);
         break;
-      case path.includes(`${dir.src}styles/`):
+      case filePath.includes(`${dir.src}styles/`):
         bundleSCSS(configs);
         break;
-      case path.includes(`${dir.src}templates/`):
-      case path.includes(`${dir.src}partials/`):
-      case path.includes(`${dir.src}layout/`):
+      case filePath.includes(`${dir.src}templates/`):
+      case filePath.includes(`${dir.src}partials/`):
+      case filePath.includes(`${dir.src}layout/`):
         compilePageMappingData(configs);
         break;
-      case path.includes(`${dir.src}images/`):
+      case filePath.includes(`${dir.src}images/`):
         moveImages(configs);
         break;
       default:
     }
   }
 
-  function buildChanged(path) {
-    if (path.includes('.DS_Store')) return;
-    log(`${timestamp.stamp()} ${`Build file modified: ${path.split('alisonanders.com')[1]}`.bold.red}`);
+  function buildChanged(filePath) {
+    if (filePath.includes('.DS_Store')) return;
+    log(`${timestamp.stamp()} ${chalk.bold.red(`Build file modified: ${filePath.split('alisonanders.com')[1]}`)}`);
     process.exit();
   }
 

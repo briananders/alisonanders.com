@@ -1,43 +1,37 @@
 const fs = require('fs-extra');
-const glob = require('glob');
+const { globSync } = require('glob');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function updateCSSwithImageHashes({
+module.exports = async function updateCSSwithImageHashes({
   dir, buildEvents, hashingFileNameList, debug,
 }) {
   const timestamp = require(`${dir.build}timestamp`);
 
   log(`${timestamp.stamp()} hashingUpdateCSS()`);
 
-  const cssGlob = glob.sync(`${dir.package}**/*.css`);
-  let processedCss = 0;
-  cssGlob.forEach((file, index, array) => {
-    const fileBuffer = fs.readFileSync(file);
-    let fileContents = fileBuffer.toString();
-    let keysProcessed = 0;
-    (Object.keys(hashingFileNameList)).forEach((key, keyIndex, keyArray) => {
+  const cssGlob = globSync(`${dir.package}**/*.css`);
+  const hashEntries = Object.entries(hashingFileNameList);
+
+  await Promise.all(cssGlob.map(async (file) => {
+    let fileContents = (await fs.readFile(file)).toString();
+
+    for (const [key, hashedPath] of hashEntries) {
       const fileName = key.split(dir.package)[1];
-      const fileNameHash = hashingFileNameList[key].split(dir.package)[1];
+      const fileNameHash = hashedPath.split(dir.package)[1];
       if (debug) log(`${timestamp.stamp()} hashingUpdateCSS():: ${fileName}`);
-      // eslint-disable-next-line no-bitwise
-      if (~fileContents.indexOf(fileName)) {
+      if (fileContents.includes(fileName)) {
         fileContents = fileContents.split(fileName).join(fileNameHash);
       }
-      keysProcessed++;
-      if (keysProcessed >= keyArray.length) {
-        fs.writeFile(file, fileContents, (err) => {
-          if (err) throw err;
-          if (debug) log(`${timestamp.stamp()} hashingUpdateCSS()::: ${file}: ${'DONE'.bold.green}`);
-          processedCss++;
-          if (processedCss >= array.length) {
-            log(`${timestamp.stamp()} hashingUpdateCSS(): ${'DONE'.bold.green}`);
-            buildEvents.emit(BUILD_EVENTS.indexCssForHashing);
-          }
-        });
-      }
-    });
-  });
+    }
+
+    await fs.writeFile(file, fileContents);
+    if (debug) log(`${timestamp.stamp()} hashingUpdateCSS()::: ${file}: ${chalk.bold.green('DONE')}`);
+  }));
+
+  log(`${timestamp.stamp()} hashingUpdateCSS(): ${chalk.bold.green('DONE')}`);
+  buildEvents.emit(BUILD_EVENTS.indexCssForHashing);
 };

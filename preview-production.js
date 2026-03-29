@@ -1,7 +1,5 @@
 'use strict';
 
-require('colors');
-
 const dir = {
   root: `${__dirname}/`,
   src: `${__dirname}/src/`,
@@ -12,14 +10,10 @@ const dir = {
 
 const timestamp = require(`${dir.build}timestamp`);
 const express = require('express');
-const serve = require('express-static');
+
 const app = express();
 
-
-// /////////////////////////////////////// event listeners ////////////////////////////////////////
-
-
-app.use(serve(dir.package));
+app.use(express.static(dir.package));
 
 const server = app.listen(3000, () => {
   console.log(`${timestamp.stamp()}: server is running at %s`, server.address().port);

@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const { log } = console;
 
 const BUILD_EVENTS = require('./constants/build-events');
@@ -5,7 +6,7 @@ const BUILD_EVENTS = require('./constants/build-events');
 module.exports = function compressImages({ dir, completionFlags, buildEvents }) {
   const timestamp = require(`${dir.build}timestamp`);
 
-  log(`${timestamp.stamp()} ${'TODO'.red.bold} compressImages()`);
+  log(`${timestamp.stamp()} ${chalk.red.bold('TODO')} compressImages()`);
   completionFlags.IMAGE_COMPRESSION = true;
   buildEvents.emit(BUILD_EVENTS.imageCompressionDone);
 };

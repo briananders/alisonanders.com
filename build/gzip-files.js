@@ -1,12 +1,15 @@
 const fs = require('fs-extra');
-const glob = require('glob');
+const { globSync } = require('glob');
 const zlib = require('zlib');
+const { promisify } = require('util');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
+const gzip = promisify(zlib.gzip);
 
-module.exports = function gzipFiles({
+module.exports = async function gzipFiles({
   dir, completionFlags, buildEvents, debug,
 }) {
   completionFlags.GZIP = false;
@@ -15,27 +18,18 @@ module.exports = function gzipFiles({
 
   log(`${timestamp.stamp()} gzip()`);
 
-  const overallGlob = glob.sync(`${dir.package}**/*.+(html|xml|css|js)`);
+  const overallGlob = globSync(`${dir.package}**/*.+(html|xml|css|js)`);
 
-  let processed = 0;
   if (debug) log(`overallGlob: ${overallGlob.length} \n\n ${overallGlob} \n`);
 
-  overallGlob.forEach((file) => {
-    fs.readFile(file, (error) => {
-      if (error) throw error;
-      zlib.gzip(file, (err, result) => {
-        if (err) throw err;
-        fs.writeFile(`${file}.gz`, result, (e) => {
-          if (e) throw e;
-          if (debug) log(`${timestamp.stamp()} gzip: ${file} ${'complete'.bold.green}`);
-          processed++;
-          if (processed >= overallGlob.length) {
-            log(`${timestamp.stamp()} gzip(): ${'DONE'.bold.green}`);
-            completionFlags.GZIP = true;
-            buildEvents.emit(BUILD_EVENTS.gzipDone);
-          }
-        });
-      });
-    });
-  });
+  await Promise.all(overallGlob.map(async (file) => {
+    const data = await fs.readFile(file);
+    const compressed = await gzip(data);
+    await fs.writeFile(`${file}.gz`, compressed);
+    if (debug) log(`${timestamp.stamp()} gzip: ${file} ${chalk.bold.green('complete')}`);
+  }));
+
+  log(`${timestamp.stamp()} gzip(): ${chalk.bold.green('DONE')}`);
+  completionFlags.GZIP = true;
+  buildEvents.emit(BUILD_EVENTS.gzipDone);
 };

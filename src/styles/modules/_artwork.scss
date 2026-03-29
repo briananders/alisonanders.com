@@ -1,3 +1,5 @@
+@use '../lib/mixins' as *;
+
 #the-art {
   width: calc(100% + 40px);
   margin-left: -20px;

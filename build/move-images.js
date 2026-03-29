@@ -1,11 +1,13 @@
 const fs = require('fs-extra');
-const copy = require('copy');
+const { globSync } = require('glob');
+const path = require('path');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function moveImages({ dir, completionFlags, buildEvents }) {
+module.exports = async function moveImages({ dir, completionFlags, buildEvents }) {
   completionFlags.IMAGES_ARE_MOVED = false;
 
   const timestamp = require(`${dir.build}timestamp`);
@@ -14,23 +16,21 @@ module.exports = function moveImages({ dir, completionFlags, buildEvents }) {
   log(`${timestamp.stamp()} moveFonts()`);
   log(`${timestamp.stamp()} moveTxt()`);
 
-  // move images over
-  fs.copy(`${dir.src}images/`, `${dir.package}images/`, (err) => {
-    if (err) throw err;
-    log(`${timestamp.stamp()} moveImages(): ${'DONE'.bold.green}`);
-    completionFlags.IMAGES_ARE_MOVED = true;
-    buildEvents.emit(BUILD_EVENTS.imagesMoved);
-  });
+  await Promise.all([
+    fs.copy(`${dir.src}images/`, `${dir.package}images/`).then(() => {
+      log(`${timestamp.stamp()} moveImages(): ${chalk.bold.green('DONE')}`);
+      completionFlags.IMAGES_ARE_MOVED = true;
+      buildEvents.emit(BUILD_EVENTS.imagesMoved);
+    }),
 
-  // move humans and robots text files
-  copy(`${dir.src}*.txt`, `${dir.package}`, (err) => {
-    if (err) throw err;
-    log(`${timestamp.stamp()} moveTxt(): ${'DONE'.bold.green}`);
-  });
+    (async () => {
+      const txtFiles = globSync(`${dir.src}*.txt`);
+      await Promise.all(txtFiles.map((file) => fs.copy(file, path.join(dir.package, path.basename(file)))));
+      log(`${timestamp.stamp()} moveTxt(): ${chalk.bold.green('DONE')}`);
+    })(),
 
-  // move humans and robots text files
-  fs.copy(`${dir.src}fonts/`, `${dir.package}fonts/`, (err) => {
-    if (err) throw err;
-    log(`${timestamp.stamp()} moveFonts(): ${'DONE'.bold.green}`);
-  });
+    fs.copy(`${dir.src}fonts/`, `${dir.package}fonts/`).then(() => {
+      log(`${timestamp.stamp()} moveFonts(): ${chalk.bold.green('DONE')}`);
+    }),
+  ]);
 };

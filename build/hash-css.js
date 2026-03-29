@@ -1,12 +1,18 @@
 const fs = require('fs-extra');
-const glob = require('glob');
-const XXHash = require('xxhash');
+const path = require('path');
+const crypto = require('crypto');
+const { globSync } = require('glob');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function hashCSS({
+function hashFile(fileContents) {
+  return crypto.createHash('sha256').update(fileContents).digest('hex').slice(0, 8);
+}
+
+module.exports = async function hashCSS({
   dir, completionFlags, buildEvents, hashingFileNameList, debug,
 }) {
   completionFlags.ASSET_HASH.CSS = false;
@@ -15,22 +21,20 @@ module.exports = function hashCSS({
 
   log(`${timestamp.stamp()} assetHashing().css`);
 
-  const cssGlob = glob.sync(`${dir.package}**/*.css`);
-  let processedCss = 0;
-  cssGlob.forEach((file, index, array) => {
-    const fileContents = fs.readFileSync(file);
-    const hash = XXHash.hash(fileContents, 0xCAFEBABE);
-    const hashedFileName = `${file.substr(0, file.lastIndexOf('.'))}-${hash}${file.substr(file.lastIndexOf('.'))}`;
+  const cssGlob = globSync(`${dir.package}**/*.css`);
+
+  await Promise.all(cssGlob.map(async (file) => {
+    const fileContents = await fs.readFile(file);
+    const hash = hashFile(fileContents);
+    const ext = path.extname(file);
+    const base = file.slice(0, file.length - ext.length);
+    const hashedFileName = `${base}-${hash}${ext}`;
     hashingFileNameList[file] = hashedFileName;
-    fs.rename(file, hashedFileName, (err) => {
-      if (err) throw err;
-      if (debug) log(`${timestamp.stamp()} assetHashing().css: ${hashedFileName} renamed complete`);
-      processedCss++;
-      if (processedCss >= array.length) {
-        completionFlags.ASSET_HASH.CSS = true;
-        log(`${timestamp.stamp()} assetHashing().css: ${'DONE'.bold.green}`);
-        buildEvents.emit(BUILD_EVENTS.assetHashCssListed);
-      }
-    });
-  });
+    await fs.rename(file, hashedFileName);
+    if (debug) log(`${timestamp.stamp()} assetHashing().css: ${hashedFileName} renamed complete`);
+  }));
+
+  completionFlags.ASSET_HASH.CSS = true;
+  log(`${timestamp.stamp()} assetHashing().css: ${chalk.bold.green('DONE')}`);
+  buildEvents.emit(BUILD_EVENTS.assetHashCssListed);
 };

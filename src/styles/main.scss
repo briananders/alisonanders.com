@@ -1,8 +1,6 @@
-@import "./lib/mixins";
-
-@import "./lib/normalize";
-
-@import "./modules/contact";
+@use './lib/mixins' as *;
+@use './lib/normalize';
+@use './modules/contact';
 
 html {
   height: 100%;

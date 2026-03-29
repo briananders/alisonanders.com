@@ -1,12 +1,11 @@
 const ejs = require('ejs');
 const fs = require('fs');
 const hljs = require('highlight.js');
-const merge = require('merge');
 const sizeOf = require('image-size');
 const path = require('path');
 
 function squeakyClean(arr) {
-  for (let i = 0; i < arr.length; i++) {
+  for (let i = arr.length - 1; i >= 0; i--) {
     if (arr[i] == null || arr[i] === '') {
       arr.splice(i, 1);
     }
@@ -17,10 +16,7 @@ function squeakyClean(arr) {
 module.exports = (dir, pageMappingData) => ({
   partial(partialPath, data) {
     const newPath = `${dir.src}partials/${partialPath}.ejs`;
-
-    return ejs.render(fs.readFileSync(newPath).toString(), data, {
-      compileDebug: true,
-    });
+    return ejs.render(fs.readFileSync(newPath).toString(), data, { compileDebug: true });
   },
 
   getChildPages(parentPath) {
@@ -31,33 +27,20 @@ module.exports = (dir, pageMappingData) => ({
       const len = splitUrl.length - 1;
       if (parentPath === '') {
         return len === 0 && !page.url.includes('.html');
-      } if (iOf === -1) {
-        return false;
-      } if (len - iOf === 1) {
-        return true;
       }
+      if (iOf === -1) return false;
+      if (len - iOf === 1) return true;
       return false;
     });
   },
 
   formattedDate(dateString) {
-    const monthName = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
     ];
     const date = new Date(dateString);
-    const month = monthName[date.getMonth()];
-    return `${month} ${date.getFullYear()}`;
+    return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
   },
 
   noWidows(str) {
@@ -65,8 +48,7 @@ module.exports = (dir, pageMappingData) => ({
   },
 
   code(block, locals = { class: '', style: '', language: '' }) {
-    // https://github.com/highlightjs/highlight.js/blob/master/SUPPORTED_LANGUAGES.md
-    const highlightedCode = (locals.language)
+    const highlightedCode = locals.language
       ? hljs.highlight(block, { language: locals.language }).value
       : hljs.highlightAuto(block).value;
     return `
@@ -75,17 +57,13 @@ module.exports = (dir, pageMappingData) => ({
   },
 
   lazyImage({ src, alt, classString, id } = {}) {
-    if (!src) {
-      throw new Error('lazyImage is missing src attribute');
-    }
+    if (!src) throw new Error('lazyImage is missing src attribute');
     const dimensions = sizeOf(path.join(dir.src, src));
     return `<img lazy src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${dimensions.width} ${dimensions.height}'%3E%3C/svg%3E" data-src="${src}" alt="${alt || ''}" height="${dimensions.height}" width="${dimensions.width}" ${classString ? `class="${classString}"` : ''} ${id ? `id="${id}"` : ''} />`;
   },
 
   lazyVideo({ srcs, placeholders, attributes = ['autoplay', 'muted', 'loop', 'playsinline'] } = {}) {
-    if (!srcs) {
-      throw new Error('lazyVideo is missing srcs attribute');
-    }
+    if (!srcs) throw new Error('lazyVideo is missing srcs attribute');
     const desktopDimensions = sizeOf(path.join(dir.src, placeholders.desktop));
     const mobileDimensions = sizeOf(path.join(dir.src, placeholders.mobile));
     return `
@@ -107,16 +85,14 @@ module.exports = (dir, pageMappingData) => ({
   },
 
   link(str, locals) {
-    if (!locals.href) {
-      throw new Error('externalLink is missing href attribute');
-    }
-    locals.class = `${locals.class || ''} link`;
+    if (!locals.href) throw new Error('externalLink is missing href attribute');
+    const attrs = { ...locals, class: `${locals.class || ''} link` };
     return `<a itemprop="url"
-    ${Object.keys(locals).map((attr) => `${attr}="${locals[attr]}"`).join(' ')}>${str}</a>`;
+    ${Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ')}>${str}</a>`;
   },
 
   externalLink(str, locals) {
-    return this.link(str, merge(locals, { rel: 'noopener', target: 'blank' }));
+    return this.link(str, { ...locals, rel: 'noopener', target: 'blank' });
   },
 
   defaultLastFMModule: (albums = true) => `

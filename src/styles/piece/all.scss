@@ -1,4 +1,4 @@
-@import "./lib/mixins";
+@use '../lib/mixins' as *;
 
 #piece {
   max-height: 100%;

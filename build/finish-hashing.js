@@ -1,11 +1,12 @@
 const fs = require('fs-extra');
-const glob = require('glob');
+const { globSync } = require('glob');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function finishHashing({
+module.exports = async function finishHashing({
   dir, completionFlags, buildEvents, hashingFileNameList, debug,
 }) {
   completionFlags.ASSET_HASH.DONE = false;
@@ -14,43 +15,43 @@ module.exports = function finishHashing({
 
   log(`${timestamp.stamp()} finishHashing()`);
 
-  if (debug) log(`${timestamp.stamp()} finishHashing(): ${Object.keys(hashingFileNameList)}`);
-  if (debug) log(`${timestamp.stamp()} finishHashing(): completionFlags.ASSET_HASH.IMAGES :${completionFlags.ASSET_HASH.IMAGES}`);
-  if (debug) log(`${timestamp.stamp()} finishHashing(): completionFlags.ASSET_HASH.CSS    :${completionFlags.ASSET_HASH.CSS}`);
-  if (debug) log(`${timestamp.stamp()} finishHashing(): completionFlags.ASSET_HASH.JS     :${completionFlags.ASSET_HASH.JS}`);
+  if (debug) {
+    log(`${timestamp.stamp()} finishHashing(): ${Object.keys(hashingFileNameList)}`);
+    log(`${timestamp.stamp()} finishHashing(): completionFlags.ASSET_HASH.IMAGES : ${completionFlags.ASSET_HASH.IMAGES}`);
+    log(`${timestamp.stamp()} finishHashing(): completionFlags.ASSET_HASH.CSS    : ${completionFlags.ASSET_HASH.CSS}`);
+    log(`${timestamp.stamp()} finishHashing(): completionFlags.ASSET_HASH.JS     : ${completionFlags.ASSET_HASH.JS}`);
+  }
+
   if (!completionFlags.ASSET_HASH.IMAGES
       || !completionFlags.ASSET_HASH.CSS
       || !completionFlags.ASSET_HASH.JS) {
     return false;
   }
+
   if (debug) log(`${timestamp.stamp()} finishHashing(): ${Object.keys(hashingFileNameList)}`);
-  const htmlGlob = glob.sync(`${dir.package}**/*.html`);
-  let htmlFilesProcessed = 0;
-  htmlGlob.forEach((file, index, array) => {
-    const fileBuffer = fs.readFileSync(file);
-    let fileContents = fileBuffer.toString();
-    let keysProcessed = 0;
-    (Object.keys(hashingFileNameList)).forEach((key, keyIndex, keyArray) => {
+
+  const htmlGlob = globSync(`${dir.package}**/*.html`);
+  const hashEntries = Object.entries(hashingFileNameList);
+
+  await Promise.all(htmlGlob.map(async (file) => {
+    let fileContents = (await fs.readFile(file)).toString();
+
+    for (const [key, hashedPath] of hashEntries) {
       const fileName = key.split(dir.package)[1];
-      const fileNameHash = hashingFileNameList[key].split(dir.package)[1];
+      const fileNameHash = hashedPath.split(dir.package)[1];
       if (debug) log(`${timestamp.stamp()} finishHashing():: ${fileName}`);
-      // eslint-disable-next-line no-bitwise
-      if (~fileContents.indexOf(fileName)) {
+      if (fileContents.includes(fileName)) {
         fileContents = fileContents.split(fileName).join(fileNameHash);
       }
-      keysProcessed++;
-      if (keysProcessed >= keyArray.length) {
-        fs.writeFile(file, fileContents, (err) => {
-          if (err) throw err;
-          if (debug) log(`${timestamp.stamp()} finishHashing()::: ${file}: ${'DONE'.bold.green}`);
-          htmlFilesProcessed++;
-          if (htmlFilesProcessed >= array.length) {
-            log(`${timestamp.stamp()} finishHashing(): ${'DONE'.bold.green}`);
-            completionFlags.ASSET_HASH.DONE = true;
-            buildEvents.emit(BUILD_EVENTS.hashingDone);
-          }
-        });
-      }
-    });
-  });
+    }
+
+    await fs.writeFile(file, fileContents);
+    if (debug) log(`${timestamp.stamp()} finishHashing()::: ${file}: ${chalk.bold.green('DONE')}`);
+  }));
+
+  log(`${timestamp.stamp()} finishHashing(): ${chalk.bold.green('DONE')}`);
+  completionFlags.ASSET_HASH.DONE = true;
+  buildEvents.emit(BUILD_EVENTS.hashingDone);
+
+  return true;
 };

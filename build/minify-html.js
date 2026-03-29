@@ -1,12 +1,13 @@
 const fs = require('fs-extra');
-const glob = require('glob');
-const htmlMinify = require('html-minifier');
+const { globSync } = require('glob');
+const { minify } = require('html-minifier-terser');
+const chalk = require('chalk');
 
 const BUILD_EVENTS = require('./constants/build-events');
 
 const { log } = console;
 
-module.exports = function minifyHTML({
+module.exports = async function minifyHTML({
   dir, completionFlags, buildEvents, debug,
 }) {
   completionFlags.HTML_IS_MINIFIED = false;
@@ -15,39 +16,30 @@ module.exports = function minifyHTML({
 
   log(`${timestamp.stamp()} minifyHTML()`);
 
-  const htmlGlob = glob.sync(`${dir.package}**/*.html`);
-  let processed = 0;
+  const htmlGlob = globSync(`${dir.package}**/*.html`);
 
-  htmlGlob.forEach((htmlFileName, index, array) => {
+  await Promise.all(htmlGlob.map(async (htmlFileName) => {
     if (debug) log(`${timestamp.stamp()} minifyHTML - ${htmlFileName.split('/package/')[1]}`);
 
-    fs.readFile(htmlFileName, (error, data) => {
-      if (error) throw error;
-
-      const minifiedHtml = htmlMinify.minify(data.toString(), {
-        caseSensitive: true,
-        collapseWhitespace: false,
-        conservativeCollapse: true,
-        html5: true,
-        keepClosingSlash: true,
-        minifyCSS: true,
-        minifyJS: true,
-        removeAttributeQuotes: true,
-        removeComments: true,
-        sortClassName: true,
-        useShortDoctype: true,
-      });
-
-      fs.writeFile(htmlFileName, minifiedHtml, (err) => {
-        if (err) throw err;
-        processed++;
-
-        if (processed === array.length) {
-          log(`${timestamp.stamp()} minifyHTML(): ${'DONE'.bold.green}`);
-          completionFlags.HTML_IS_MINIFIED = true;
-          buildEvents.emit(BUILD_EVENTS.htmlMinified);
-        }
-      });
+    const data = await fs.readFile(htmlFileName, 'utf8');
+    const minifiedHtml = await minify(data, {
+      caseSensitive: true,
+      collapseWhitespace: false,
+      conservativeCollapse: true,
+      html5: true,
+      keepClosingSlash: true,
+      minifyCSS: true,
+      minifyJS: true,
+      removeAttributeQuotes: true,
+      removeComments: true,
+      sortClassName: true,
+      useShortDoctype: true,
     });
-  });
+
+    await fs.writeFile(htmlFileName, minifiedHtml);
+  }));
+
+  log(`${timestamp.stamp()} minifyHTML(): ${chalk.bold.green('DONE')}`);
+  completionFlags.HTML_IS_MINIFIED = true;
+  buildEvents.emit(BUILD_EVENTS.htmlMinified);
 };

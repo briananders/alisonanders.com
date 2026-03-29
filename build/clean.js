@@ -1,18 +1,11 @@
 const fs = require('fs-extra');
-
+const chalk = require('chalk');
 const timestamp = require('./timestamp');
 
 const { log } = console;
 
-module.exports = ({ dir }) => new Promise((resolve, reject) => {
+module.exports = async ({ dir }) => {
   log(`${timestamp.stamp()} clean()`);
-
-  fs.emptyDir(dir.package, (error) => {
-    if (error) {
-      log(error);
-      reject();
-    } else {
-      resolve();
-    }
-  });
-});
+  await fs.emptyDir(dir.package);
+  log(`${timestamp.stamp()} clean(): ${chalk.bold.green('DONE')}`);
+};

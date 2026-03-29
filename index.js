@@ -14,6 +14,7 @@ const bundleJS = require(`${dir.build}bundle-js`);
 const bundleSCSS = require(`${dir.build}bundle-scss`);
 const clean = require(`${dir.build}clean`);
 const compilePageMappingData = require(`${dir.build}page-mapping-data`);
+const convertToWebP = require(`${dir.build}convert-to-webp`);
 const moveImages = require(`${dir.build}move-images`);
 const sitemap = require(`${dir.build}sitemap`);
 const prodBuilder = require(`${dir.build}prod-builder`);
@@ -53,12 +54,13 @@ if (!production) {
 
 log(chalk.blueBright.bold(`PRODUCTION: ${String(production).toUpperCase()}`));
 
-clean(configs).then(() => {
+clean(configs).then(async () => {
   if (debug) log(`${timestamp.stamp()} clean().then()`);
   fs.mkdirp(dir.package);
   compilePageMappingData(configs);
   bundleJS(configs);
   bundleSCSS(configs);
+  await convertToWebP(configs);
   moveImages(configs);
 });
 

@@ -25,9 +25,11 @@ module.exports = (configs) => {
     gzipFiles(configs);
   });
   buildEvents.on(BUILD_EVENTS.htmlMinified, assetHashing.bind(this, configs));
-  buildEvents.on(BUILD_EVENTS.imageCompressionDone, checkDone.bind(this, configs));
-  buildEvents.on(BUILD_EVENTS.imagesMoved, () => {
+  buildEvents.on(BUILD_EVENTS.imageCompressionDone, () => {
     assetHashing(configs);
+    checkDone(configs);
+  });
+  buildEvents.on(BUILD_EVENTS.imagesMoved, () => {
     compressImages(configs);
   });
   buildEvents.on(BUILD_EVENTS.indexCssForHashing, hashCSS.bind(this, configs));

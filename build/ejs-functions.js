@@ -59,7 +59,8 @@ module.exports = (dir, pageMappingData) => ({
   lazyImage({ src, alt, classString, id } = {}) {
     if (!src) throw new Error('lazyImage is missing src attribute');
     const dimensions = sizeOf(path.join(dir.src, src));
-    return `<img lazy src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${dimensions.width} ${dimensions.height}'%3E%3C/svg%3E" data-src="${src}" alt="${alt || ''}" height="${dimensions.height}" width="${dimensions.width}" ${classString ? `class="${classString}"` : ''} ${id ? `id="${id}"` : ''} />`;
+    const webpSrc = src.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+    return `<img lazy src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${dimensions.width} ${dimensions.height}'%3E%3C/svg%3E" data-src="${webpSrc}" alt="${alt || ''}" height="${dimensions.height}" width="${dimensions.width}" ${classString ? `class="${classString}"` : ''} ${id ? `id="${id}"` : ''} />`;
   },
 
   lazyVideo({ srcs, placeholders, attributes = ['autoplay', 'muted', 'loop', 'playsinline'] } = {}) {

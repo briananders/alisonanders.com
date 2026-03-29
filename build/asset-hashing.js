@@ -37,7 +37,7 @@ module.exports = async function assetHashing({
   }
 
   const jsGlob = globSync(`${dir.package}**/*.js`);
-  const assetGlob = globSync(`${dir.package}images/**/*.{png,svg,jpg,webm,mp4}`);
+  const assetGlob = globSync(`${dir.package}images/**/*.{png,svg,jpg,jpeg,webp,webm,mp4}`);
 
   await Promise.all(jsGlob.map(async (file) => {
     if (debug) log(`${timestamp.stamp()} assetHashing().js: ${file} renamed start`);
